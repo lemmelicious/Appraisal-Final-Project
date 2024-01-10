@@ -13,6 +13,7 @@ function ShowSpecificVehicleDeals() {
   const [modelInfo, setModelInfo] = useState({}); // State for dealer information
   const vehiclesPerPage = 8; // Define the number of vehicles per page
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedPrice, setSelectedPrice] = useState(""); // State to hold selected style filter
 
   const { modelId } = useParams();
 
@@ -20,6 +21,11 @@ function ShowSpecificVehicleDeals() {
     try {
       setIsLoading(true);
       let url = `http://localhost:8000/api/dealerVehicle/${modelId}?page=${currentPage}&limit=${vehiclesPerPage}`;
+
+      if (selectedPrice) {
+        url += `&price=${selectedPrice}`;
+      }
+
       const response = await axios.get(url);
       const { data } = response; // Destructure the response
       console.log(data);
@@ -43,7 +49,7 @@ function ShowSpecificVehicleDeals() {
       console.log(error);
       setIsLoading(false);
     }
-  }, [modelId, currentPage, vehiclesPerPage]); // Remove currentPage from the dependency array
+  }, [modelId, currentPage, vehiclesPerPage, selectedPrice]); // Remove currentPage from the dependency array
 
   useEffect(() => {
     getVehicles();
@@ -55,6 +61,10 @@ function ShowSpecificVehicleDeals() {
 
   const prevPage = () => {
     setCurrentPage((prevPage) => Math.max(prevPage - 1, 1));
+  };
+
+  const handleStyleChange = (e) => {
+    setSelectedPrice(e.target.value); // Update selected style when dropdown value changes
   };
 
   return (
@@ -71,30 +81,66 @@ function ShowSpecificVehicleDeals() {
           <Loader />
         </div>
       ) : (
-        <div className={styles["home-page"]}>
-          <h1 style={{ fontWeight: "900", color: " rgb(102, 98, 98)" }}>
-            {modelInfo.modelName}'s Dealers{" "}
-          </h1>
-          {/* Consider rendering a specific vehicle's image */}
-          {/* <img src={vehicles.modelName} alt={vehicles.modelName} /> */}
-
-          <Brandlist />
-          <div className={styles["vehicle-grid"]}>
-            {vehicles.map((vehicle) => (
-              <ShowVehicleDeals key={vehicle._id} vehicle={vehicle} />
-            ))}
-          </div>
-          <div className={styles["pagination-container"]}>
-            <span>Page: {currentPage}</span>
-            <div className={styles["pagination-buttons"]}>
-              <button onClick={prevPage} disabled={currentPage === 1}>
-                Prev Page
-              </button>
-              <button onClick={nextPage} disabled={currentPage === totalPages}>
-                Next Page
-              </button>
+        <div>
+          {vehicles.length === 0 ? (
+            <div
+              style={{
+                textAlign: "center",
+                fontSize: "50px",
+                fontWeight: "900",
+                color: " rgb(102, 98, 98)",
+                marginTop: "20vh",
+                wordWrap: "break-word",
+              }}
+            >
+              No {modelInfo.modelName} Price less than ${selectedPrice}
             </div>
-          </div>
+          ) : (
+            <div className={styles["home-page"]}>
+              <h1 style={{ fontWeight: "900", color: " rgb(102, 98, 98)" }}>
+                {modelInfo.modelName}'s Dealers{" "}
+              </h1>
+              {/* Consider rendering a specific vehicle's image */}
+              {/* <img src={vehicles.modelName} alt={vehicles.modelName} /> */}
+
+              <Brandlist />
+              <div style={{ margin: "10px 40px" }}>
+                <select value={selectedPrice} onChange={handleStyleChange}>
+                  <option value="">All</option>
+                  <option value="1000000">less than 1 Million</option>
+                  <option value="900000">less than 900k</option>
+                  <option value="800000">less than 800k</option>
+                  <option value="700000">less than 700k</option>
+                  <option value="600000">less than 600k</option>
+                  <option value="500000">less than 500k</option>
+                  <option value="400000">less than 400k</option>
+                  <option value="300000">less than 300k</option>
+                  <option value="200000">less than 200k</option>
+                  <option value="100000">less than 100k</option>
+                  {/* Add other style options as needed */}
+                </select>
+              </div>
+              <div className={styles["vehicle-grid"]}>
+                {vehicles.map((vehicle) => (
+                  <ShowVehicleDeals key={vehicle._id} vehicle={vehicle} />
+                ))}
+              </div>
+              <div className={styles["pagination-container"]}>
+                <span>Page: {currentPage}</span>
+                <div className={styles["pagination-buttons"]}>
+                  <button onClick={prevPage} disabled={currentPage === 1}>
+                    Prev Page
+                  </button>
+                  <button
+                    onClick={nextPage}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next Page
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </>

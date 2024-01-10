@@ -142,6 +142,7 @@ const getModel = async (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 10;
   const brandFilter = req.query.brand;
+  const styleFilter = req.query.style; // New style filter parameter
 
   try {
     let query = CarDb.Model.find().populate("brand");
@@ -151,6 +152,11 @@ const getModel = async (req, res) => {
         path: "brand",
         match: { brandName: brandFilter },
       });
+    }
+
+    if (styleFilter) {
+      // Filter by car style if style filter is provided
+      query = query.where("style").equals(styleFilter); // Assuming 'carStyle' is the field name for car style
     }
 
     const totalModels = await CarDb.Model.countDocuments(query);
@@ -395,8 +401,17 @@ const getDealerVehiclesByModel = async (req, res) => {
   const modelId = req.params.modelId;
   const page = parseInt(req.query.page) || 1; // Current page number
   const limit = parseInt(req.query.limit) || 10; // Number of items per page
+  const priceFilter = parseInt(req.query.price);
 
   try {
+    const filter = {
+      "modelInfo._id": new mongoose.Types.ObjectId(modelId),
+    };
+
+    if (!isNaN(priceFilter)) {
+      filter.price = { $lt: priceFilter };
+    }
+
     const result = await CarDb.DealerVehicle.aggregate([
       {
         $lookup: {
@@ -443,9 +458,7 @@ const getDealerVehiclesByModel = async (req, res) => {
         $unwind: "$brandInfo",
       },
       {
-        $match: {
-          "modelInfo._id": new mongoose.Types.ObjectId(modelId),
-        },
+        $match: filter,
       },
       {
         $facet: {
@@ -467,15 +480,9 @@ const getDealerVehiclesByModel = async (req, res) => {
     ]);
 
     const dealerVehicles = result[0].paginatedResults;
-
-    if (!dealerVehicles || dealerVehicles.length === 0) {
-      return res
-        .status(404)
-        .json({ message: "No dealer vehicles found for this model." });
-    }
-
     const totalModelsCount =
       result[0].totalCount.length > 0 ? result[0].totalCount[0].count : 0;
+
     const totalPages = Math.ceil(totalModelsCount / limit);
 
     res.json({
@@ -487,7 +494,6 @@ const getDealerVehiclesByModel = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
 //by dealer id
 const getDealerVehiclesByDealerId = async (req, res) => {
   const dealerId = req.params.dealerId;
